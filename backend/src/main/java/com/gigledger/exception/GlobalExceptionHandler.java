@@ -4,33 +4,42 @@ import com.gigledger.dto.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 /**
- * Global exception handler — intercepts exceptions thrown by any @RestController
- * and converts them to clean JSON using our ErrorResponse DTO.
+ * Global exception handler — converts exceptions thrown by @RestControllers
+ * into clean JSON responses using ErrorResponse.
  *
- * WHY THIS MATTERS:
- * Without this, Spring Boot returns a white-label HTML error page or a JSON
- * blob that includes the full stack trace and class names — leaking internal
- * implementation details to any caller (including attackers).
+ * ── CRITICAL: Do NOT add @ExceptionHandler(AccessDeniedException.class) here ──
+ * Spring Security 6 handles AccessDeniedException in its Servlet Filter chain,
+ * which runs BEFORE Spring MVC. Registering an @ExceptionHandler for it in
+ * @ControllerAdvice causes Spring Security 6 to incorrectly block even
+ * permitAll() endpoints with an empty 403 body.
  *
- * EXCEPTIONS HANDLED:
- * - MethodArgumentNotValidException → 400 (bean validation failure on @Valid DTOs)
+ * Filter-level 401 and 403 are handled in SecurityConfig via:
+ *   - AuthenticationEntryPoint  → 401 (no/invalid JWT)
+ *   - AccessDeniedHandler       → 403 (Spring Security layer)
+ *
+ * Service-layer ownership violations (e.g. User B touches User A's task)
+ * throw ResponseStatusException(FORBIDDEN) instead of AccessDeniedException,
+ * which IS caught by @ExceptionHandler below.
+ *
+ * EXCEPTIONS HANDLED HERE:
+ * - MethodArgumentNotValidException → 400 (bean validation on @Valid DTOs)
+ * - IllegalArgumentException        → 400 (bad input in service)
+ * - BadCredentialsException         → 401 (wrong password)
+ * - ResponseStatusException         → uses embedded status (403, 404, 409 etc.)
  * - NoSuchElementException          → 404 (task/user not found)
  * - IllegalStateException           → 409 (e.g. payout already logged)
- * - IllegalArgumentException        → 400 (bad input caught in service)
- * - BadCredentialsException         → 401 (wrong password)
- * - AccessDeniedException           → 403 (ownership check failure)
- * - Exception (catch-all)           → 500 (unexpected errors; message is hidden)
+ * - Exception (catch-all)           → 500 (message hidden, logged server-side)
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -39,11 +48,11 @@ public class GlobalExceptionHandler {
 
     /**
      * Triggered when @Valid fails on a request body.
-     * Collects ALL field-level errors into a single comma-separated message
-     * so the caller sees every violation in one response, not just the first.
+     * Collects ALL field errors into one response so the caller sees every
+     * violation at once, not just the first one.
      *
-     * Example output:
-     *   "message": "promisedAmount: must be greater than zero; email: must be a valid email address"
+     * Example: "Validation failed: promisedAmount: must be greater than zero;
+     *           email: must be a valid email address"
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(
@@ -67,28 +76,33 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
-    // ─── 401 — Wrong credentials ──────────────────────────────────────────────
+    // ─── 401 — Wrong credentials (service layer) ─────────────────────────────
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentials(
             BadCredentialsException ex,
             HttpServletRequest request) {
-        // Always return a generic message to prevent user enumeration
+        // Generic message prevents user enumeration (don't reveal if email exists)
         return build(HttpStatus.UNAUTHORIZED, "Invalid email or password", request);
     }
 
-    // ─── 403 — Ownership violation ────────────────────────────────────────────
+    // ─── Dynamic status (403 ownership, 404 not-found, 409 conflict) ─────────
 
     /**
-     * Triggered by TaskService when a user tries to access another user's task.
-     * Note: Spring Security's own filter-level 403 bypasses this handler;
-     * this only catches service-layer AccessDeniedException.
+     * ResponseStatusException carries its own HTTP status, so one handler
+     * covers all service-layer cases where we need a specific HTTP code:
+     *
+     * - FORBIDDEN  (403): thrown by TaskService when User B tries to access User A's task
+     * - NOT_FOUND  (404): alternative to NoSuchElementException
+     * - CONFLICT   (409): alternative to IllegalStateException
      */
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDenied(
-            AccessDeniedException ex,
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatus(
+            ResponseStatusException ex,
             HttpServletRequest request) {
-        return build(HttpStatus.FORBIDDEN, "You do not have permission to access this resource", request);
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+        String message = ex.getReason() != null ? ex.getReason() : ex.getMessage();
+        return build(status, message, request);
     }
 
     // ─── 404 — Not found ─────────────────────────────────────────────────────
@@ -102,11 +116,6 @@ public class GlobalExceptionHandler {
 
     // ─── 409 — Conflict ──────────────────────────────────────────────────────
 
-    /**
-     * Used for:
-     * - "Email already registered" (signup)
-     * - "Payout already logged for this task" (duplicate payout)
-     */
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleConflict(
             IllegalStateException ex,
@@ -116,28 +125,20 @@ public class GlobalExceptionHandler {
 
     // ─── 500 — Catch-all ─────────────────────────────────────────────────────
 
-    /**
-     * Catches any unhandled exception.
-     * The real cause is logged server-side but NOT exposed to the caller.
-     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(
             Exception ex,
             HttpServletRequest request) {
-        // Log the real error server-side (visible in mvn spring-boot:run output)
-        System.err.println("[GlobalExceptionHandler] Unhandled exception: " + ex);
+        System.err.println("[GlobalExceptionHandler] Unhandled exception at "
+            + request.getRequestURI() + ": " + ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", request);
     }
 
-    // ─── Builder helper ───────────────────────────────────────────────────────
+    // ─── Builder ─────────────────────────────────────────────────────────────
 
     private ResponseEntity<ErrorResponse> build(HttpStatus status, String message, HttpServletRequest request) {
-        ErrorResponse body = new ErrorResponse(
-                status.value(),
-                status.getReasonPhrase(),
-                message,
-                request.getRequestURI()
+        return ResponseEntity.status(status).body(
+            new ErrorResponse(status.value(), status.getReasonPhrase(), message, request.getRequestURI())
         );
-        return ResponseEntity.status(status).body(body);
     }
 }

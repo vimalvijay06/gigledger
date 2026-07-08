@@ -10,9 +10,10 @@ import com.gigledger.repository.PayoutRepository;
 import com.gigledger.repository.TaskRepository;
 import com.gigledger.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -77,9 +78,10 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new NoSuchElementException("Task not found: " + taskId));
 
-        // Ownership check — prevent one user from logging payouts on another user's tasks
+        // Ownership check — prevent User B from logging payouts on User A's tasks
         if (!task.getUser().getId().equals(user.getId())) {
-            throw new AccessDeniedException("Task does not belong to the authenticated user");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "Task does not belong to the authenticated user");
         }
 
         // Idempotency guard — don't allow overwriting an existing payout
