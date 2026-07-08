@@ -118,23 +118,24 @@ public class TaskService {
      */
     private TaskResponse toResponse(Task task) {
         Payout payout = task.getPayout();
-        boolean payoutLogged = payout != null;
 
-        BigDecimal difference = null;
-        if (payoutLogged) {
-            difference = task.getPromisedAmount().subtract(payout.getActualAmount());
-        }
+        // Compute difference only when a payout exists (promised - actual).
+        // Positive = underpaid, Zero = exact, Negative = overpaid.
+        BigDecimal difference = (payout != null)
+                ? task.getPromisedAmount().subtract(payout.getActualAmount())
+                : null;
 
         return TaskResponse.builder()
                 .id(task.getId())
                 .acceptedAt(task.getAcceptedAt())
                 .promisedAmount(task.getPromisedAmount())
                 .distanceKm(task.getDistanceKm())
-                .actualAmount(payoutLogged ? payout.getActualAmount() : null)
-                .deductionReason(payoutLogged ? payout.getDeductionReason() : null)
-                .payoutLoggedAt(payoutLogged ? payout.getLoggedAt() : null)
+                // All payout fields use direct null-guard so the IDE's flow analysis is happy
+                .actualAmount(payout != null ? payout.getActualAmount() : null)
+                .deductionReason(payout != null ? payout.getDeductionReason() : null)
+                .payoutLoggedAt(payout != null ? payout.getLoggedAt() : null)
                 .difference(difference)
-                .payoutLogged(payoutLogged)
+                .payoutLogged(payout != null)
                 .build();
     }
 }

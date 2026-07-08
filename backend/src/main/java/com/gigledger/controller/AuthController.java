@@ -8,17 +8,18 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.*;
 
 /**
  * REST controller for authentication endpoints.
  *
- * POST /auth/signup → register + return JWT
- * POST /auth/login  → authenticate + return JWT
+ * Exception handling is delegated entirely to GlobalExceptionHandler:
+ * - IllegalStateException  → 409 (email already registered)
+ * - BadCredentialsException → 401 (wrong password)
+ * - MethodArgumentNotValidException → 400 (bean validation on @Valid)
  *
- * Both endpoints are public (configured in SecurityConfig).
- * @Valid triggers Bean Validation on the request body before the method is called.
+ * This keeps the controller thin — it only handles routing and HTTP status codes
+ * for the happy path. All error paths go through the global handler.
  */
 @RestController
 @RequestMapping("/auth")
@@ -28,23 +29,14 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest request) {
-        try {
-            AuthResponse response = authService.signup(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (IllegalStateException e) {
-            // Email already registered
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-        }
+    public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request) {
+        AuthResponse response = authService.signup(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
-        try {
-            AuthResponse response = authService.login(request);
-            return ResponseEntity.ok(response);
-        } catch (BadCredentialsException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password");
-        }
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
     }
 }

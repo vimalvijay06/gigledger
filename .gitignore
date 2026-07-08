@@ -1,0 +1,32 @@
+# ─── Java / Maven ────────────────────────────────────────────────────────────
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# ─── Spring Boot secrets — NEVER commit real credentials ─────────────────────
+# The real application.properties contains DB passwords and JWT secrets.
+# Use application.properties.example as the committed template instead.
+backend/src/main/resources/application.properties
+
+# application-local.properties is an optional override for local dev secrets
+backend/src/main/resources/application-local.properties
+
+# ─── IDE ─────────────────────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/settings.json
+*.suo
+*.user
+
+# ─── Node / Frontend ─────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# ─── OS ──────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

@@ -1,29 +1,37 @@
 package com.gigledger.dto;
 
-import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Request body for POST /tasks — manually logging a new delivery task.
+ * Request body for POST /tasks.
  *
- * - promisedAmount: the fare shown on the app before the worker accepted (₹)
- * - distanceKm: the delivery distance shown at acceptance
- * - acceptedAt: when the worker accepted; sent by the client so workers can
- *   log tasks retroactively from memory if they forgot to log in real-time
+ * Validation rules:
+ * - promisedAmount: required, must be > 0 (a fare of ₹0 makes no sense)
+ * - distanceKm:     optional, but if provided must be >= 0
+ * - acceptedAt:     required — must be an explicit timestamp, not defaulted
+ *                   server-side, so workers can backdate retroactive entries
+ *
+ * @Positive is stricter than @DecimalMin("0.01") — it rejects 0 and negatives
+ * in a single annotation and works correctly with BigDecimal.
  */
 @Data
 public class TaskRequest {
 
     @NotNull(message = "Promised amount is required")
-    @DecimalMin(value = "0.01", message = "Promised amount must be positive")
+    @Positive(message = "Promised amount must be greater than zero")
+    @DecimalMax(value = "999999.99", message = "Promised amount seems unrealistically large")
     private BigDecimal promisedAmount;
 
-    @DecimalMin(value = "0.0", message = "Distance cannot be negative")
-    private BigDecimal distanceKm;
+    @PositiveOrZero(message = "Distance cannot be negative")
+    @DecimalMax(value = "9999.99", message = "Distance seems unrealistically large")
+    private BigDecimal distanceKm; // optional
 
     @NotNull(message = "Accepted-at timestamp is required")
     private LocalDateTime acceptedAt;

@@ -1,28 +1,21 @@
 # ─── Database ────────────────────────────────────────────────────────────────
-# Connect to the local PostgreSQL database.
-# Replace password if you used a different one during setup.
-spring.datasource.url=jdbc:postgresql://localhost:5432/gigledger_db
-spring.datasource.username=gigledger_user
-spring.datasource.password=gigledger_pass
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/gigledger_db}
+spring.datasource.username=${DB_USERNAME:postgres}
+spring.datasource.password=${DB_PASSWORD}
 spring.datasource.driver-class-name=org.postgresql.Driver
 
 # ─── JPA / Hibernate ─────────────────────────────────────────────────────────
-# "update": Hibernate reads your @Entity classes and automatically creates or
-# alters tables to match. Safe for development; use "validate" in production.
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 
 # ─── Server ───────────────────────────────────────────────────────────────────
-server.port=8080
+server.port=${SERVER_PORT:8080}
 
 # ─── JWT ─────────────────────────────────────────────────────────────────────
-# Secret must be at least 32 characters (256 bits) for HS256.
-# IMPORTANT: Change this to a long random string before any public deployment.
-jwt.secret=gigledger-super-secret-key-change-me-in-production-2024
-# 7 days in milliseconds (7 * 24 * 60 * 60 * 1000)
-jwt.expiration-ms=604800000
+# Must be at least 32 characters for HS256
+jwt.secret=${JWT_SECRET}
+jwt.expiration-ms=${JWT_EXPIRATION_MS:604800000}
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
 logging.level.com.gigledger=DEBUG

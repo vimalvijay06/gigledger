@@ -20,6 +20,7 @@
 
     <properties>
         <java.version>17</java.version>
+        <lombok.version>1.18.32</lombok.version>
     </properties>
 
     <dependencies>
@@ -90,11 +91,32 @@
 
     <build>
         <plugins>
+            <!--
+              CRITICAL: Lombok must be registered as an annotationProcessorPath.
+              Without this, the Java 17 compiler never invokes Lombok's
+              annotation processor, so @Data/@Builder/@Getter/@Setter
+              /@RequiredArgsConstructor generate nothing — causing all
+              the 'cannot find symbol' errors for getters/builders/constructors.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <!-- Exclude Lombok from the final JAR -->
+                    <!-- Exclude Lombok from the final JAR (it's compile-only) -->
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
