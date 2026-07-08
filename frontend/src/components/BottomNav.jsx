@@ -59,7 +59,7 @@ export default function BottomNav() {
           border: '2px solid currentColor',
           display: 'flex',
           alignItems: 'center',
-          justify-content: 'center',
+          justifyContent: 'center',
           fontSize: '0.625rem',
           fontWeight: 800,
           background: 'rgba(255, 255, 255, 0.05)',

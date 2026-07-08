@@ -40,7 +40,7 @@ export default function CapturePage() {
             borderRadius: 'var(--radius-md)',
             display: 'flex',
             alignItems: 'center',
-            justify-content: 'center',
+            justifyContent: 'center',
             flexShrink: 0
           }}>
             <Edit size={24} />
@@ -84,7 +84,7 @@ export default function CapturePage() {
             borderRadius: 'var(--radius-md)',
             display: 'flex',
             alignItems: 'center',
-            justify-content: 'center',
+            justifyContent: 'center',
             flexShrink: 0
           }}>
             <Camera size={24} />
