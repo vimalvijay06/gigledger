@@ -1,20 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/client';
 
 /**
  * LogPayoutPage — log the actual amount received for a pending task.
- *
- * Flow:
- * 1. On mount: fetch all tasks, filter to those with no payout yet (payoutLogged = false)
- * 2. User picks the task from a dropdown (shows promised amount for context)
- * 3. User enters the actual amount received and an optional deduction reason
- * 4. On submit: POST /tasks/{id}/payout
- *
- * If there are no pending tasks, the form shows a helpful empty state.
  */
 export default function LogPayoutPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const stateTaskId = location.state?.taskId;
 
   const [tasks, setTasks]               = useState([]);   // all pending (no payout) tasks
   const [loadingTasks, setLoadingTasks] = useState(true);
@@ -31,11 +25,15 @@ export default function LogPayoutPage() {
       .then(res => {
         const pending = res.data.filter(t => !t.payoutLogged);
         setTasks(pending);
-        if (pending.length > 0) setSelectedTaskId(pending[0].id);
+        if (stateTaskId) {
+          setSelectedTaskId(stateTaskId);
+        } else if (pending.length > 0) {
+          setSelectedTaskId(pending[0].id);
+        }
       })
       .catch(() => setError('Failed to load tasks'))
       .finally(() => setLoadingTasks(false));
-  }, []);
+  }, [stateTaskId]);
 
   const selectedTask = tasks.find(t => t.id === selectedTaskId);
 

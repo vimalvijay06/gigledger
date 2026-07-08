@@ -1,23 +1,31 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
-import TasksPage from './pages/TasksPage';
+import DashboardPage from './pages/DashboardPage';
+import LedgerPage from './pages/LedgerPage';
+import CapturePage from './pages/CapturePage';
+import AnalyticsPage from './pages/AnalyticsPage';
+import ProfilePage from './pages/ProfilePage';
+import NotificationsPage from './pages/NotificationsPage';
 import LogTaskPage from './pages/LogTaskPage';
 import LogPayoutPage from './pages/LogPayoutPage';
-import Navbar from './components/Navbar';
+import TopBar from './components/TopBar';
+import BottomNav from './components/BottomNav';
 
 /**
- * App.jsx — Root component.
- *
- * Routing strategy:
- * - /login  → public; redirects to /tasks if already logged in
- * - /tasks  → protected; redirects to /login if no token
- * - /log-task    → protected
- * - /log-payout  → protected
- *
- * PrivateRoute: a tiny wrapper that checks localStorage for a token.
- * This is a UI-level guard only — the backend independently validates
- * the JWT on every API call, so a user can't fake data by bypassing this.
+ * AppLayout — wrapper layout enforcing mobile app-shell view.
+ * Displays persistent fixed TopBar & BottomNav around child routes.
  */
+function AppLayout() {
+  return (
+    <div className="app-shell">
+      <TopBar />
+      <main className="app-content">
+        <Outlet />
+      </main>
+      <BottomNav />
+    </div>
+  );
+}
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('gl_token');
@@ -26,27 +34,34 @@ function PrivateRoute({ children }) {
 
 function PublicRoute({ children }) {
   const token = localStorage.getItem('gl_token');
-  return token ? <Navigate to="/tasks" replace /> : children;
+  return token ? <Navigate to="/" replace /> : children;
 }
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public Routes */}
         <Route path="/login" element={
           <PublicRoute><LoginPage /></PublicRoute>
         } />
-        <Route path="/tasks" element={
-          <PrivateRoute><><Navbar /><TasksPage /></></PrivateRoute>
-        } />
-        <Route path="/log-task" element={
-          <PrivateRoute><><Navbar /><LogTaskPage /></></PrivateRoute>
-        } />
-        <Route path="/log-payout" element={
-          <PrivateRoute><><Navbar /><LogPayoutPage /></></PrivateRoute>
-        } />
-        {/* Default redirect */}
-        <Route path="*" element={<Navigate to="/tasks" replace />} />
+
+        {/* Protected App-Shell Routes */}
+        <Route path="/" element={
+          <PrivateRoute><AppLayout /></PrivateRoute>
+        }>
+          <Route index element={<DashboardPage />} />
+          <Route path="ledger" element={<LedgerPage />} />
+          <Route path="capture" element={<CapturePage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="log-task" element={<LogTaskPage />} />
+          <Route path="log-payout" element={<LogPayoutPage />} />
+        </Route>
+
+        {/* Catch-all redirect to Dashboard */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
