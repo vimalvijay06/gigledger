@@ -1,56 +1,92 @@
-# GigLedger 📊
+<div align="center">
 
-> **An Independent Pay Verification Platform for Gig and Delivery Workers**
+# 📊 GigLedger
 
-## 🚨 The Problem
+**An Independent, Tamper-Evident Pay Verification Platform for Gig & Delivery Workers**
 
-Gig and delivery workers (e.g., Swiggy, Zomato, Blinkit riders) are paid on a per-task basis. When a worker accepts an order, the platform application shows them a **promised fare** (e.g., "₹50 for this delivery"). 
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](#)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-F2F4F9?style=for-the-badge&logo=spring-boot)](https://spring.io/projects/spring-boot)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=JSON%20web%20tokens)](https://jwt.io/)
 
-However, the **actual amount** credited to them after completing the task often differs. This happens due to unexplained deductions, hidden adjustments, or platform-side errors that are rarely justified to the worker. Currently, gig workers face a massive systemic disadvantage:
-1. They have no independent way to record what was promised versus what they actually received.
-2. They cannot track this financial gap over time.
-3. They have no way to prove whether a single discrepancy is a one-off mistake or part of a genuine, sustained pattern of underpayment.
+*Because every worker deserves a single source of truth for their hard-earned money.*
 
-The platform's own application acts as the sole record of truth. **There is no independent, worker-owned ledger.**
-
-## 💡 The Solution
-
-**GigLedger** is a secure, mobile-first web application designed to act as a worker's personal, tamper-evident earnings ledger. It empowers delivery partners to independently log, track, and verify their earnings against platform promises.
-
-### Core Features
-- **Independent Task Logging:** Workers can securely log the promised fare and distance the moment they accept a task.
-- **Payout Verification:** Once paid, workers log the actual amount received. GigLedger automatically calculates and tracks the discrepancy gap.
-- **Data Isolation & Security:** Every worker's ledger is completely private. Robust backend security ensures users can only access their own financial data.
-- **Future Roadmap (Phase 2 & 3):**
-  - **OCR Integration:** Automatically extract promised fares from screenshots to eliminate manual entry.
-  - **Statistical Analysis:** Algorithmically flag sustained underpayment patterns across multiple tasks.
-  - **Tamper-Evident Logs:** Immutable discrepancy flagging for indisputable proof of underpayment.
-
-## 🛠️ Technology Stack
-
-GigLedger is built with a modern, scalable, and secure architecture:
-
-**Frontend**
-- React.js (via Vite)
-- Mobile-first, responsive design tailored for use on the road
-- Axios for secure API communication with JWT interceptors
-
-**Backend**
-- Spring Boot 3.x (Java)
-- Spring Security (Stateless JWT Authentication)
-- Global exception handling for secure, clean JSON API responses
-- Hibernate / Spring Data JPA
-
-**Database**
-- PostgreSQL (Relational data integrity for financial records)
-
-## 🔒 Security Posture
-
-- **Stateless Authentication:** Fully secured via JSON Web Tokens (JWT). No session state is maintained on the server.
-- **Strict Data Ownership:** Service-level authorization ensures isolated data access (403 Forbidden on cross-user data attempts).
-- **Hardened Validation:** Strict DTO validation ensures data integrity at the controller boundary (e.g., preventing negative payouts or impossibly large fares).
-- **Environment Driven:** Zero hardcoded secrets. Database credentials and cryptographic keys are injected via environment variables.
+</div>
 
 ---
 
-*GigLedger — Because every worker deserves a single source of truth for their hard-earned money.*
+## 🚨 The Systemic Problem
+
+Gig and delivery workers are paid on a per-task basis. Upon accepting a task, the platform shows a **promised fare**. However, the **actual amount** credited often differs due to unexplained deductions, hidden adjustments, or platform errors. 
+
+Currently, workers have:
+- ❌ **No independent record** of what was promised vs. received.
+- ❌ **No ability to track** financial gaps over time.
+- ❌ **No evidence** to prove if a single discrepancy is a one-off mistake or a sustained pattern of underpayment.
+
+The platform's proprietary application is the sole record of truth.
+
+## 💡 The GigLedger Solution
+
+GigLedger empowers delivery partners to independently log, track, and verify their earnings. It acts as a secure, mobile-first, and tamper-evident ledger.
+
+### 🏗️ High-Level Architecture
+
+```mermaid
+graph TD
+    A[📱 React Frontend] -->|JWT Secured HTTP Calls| B(🛡️ Spring Security Filter)
+    B -->|Validated Requests| C{⚙️ Task / Auth Controllers}
+    C -->|Business Logic| D[🛠️ Service Layer]
+    D -->|Entity Mapping| E[(🐘 PostgreSQL Database)]
+    
+    subgraph Data Flow
+    D -.->|1. Log Promised Fare| E
+    D -.->|2. Log Actual Payout| E
+    D -.->|3. Calculate Discrepancy Gap| E
+    end
+```
+
+## 📂 Project Directory Structure
+
+```text
+gigledger/
+├── backend/                       # Spring Boot Application
+│   ├── src/main/java/com/gigledger/
+│   │   ├── config/                # App & Security Configurations
+│   │   ├── controller/            # REST API Endpoints (/auth, /tasks)
+│   │   ├── dto/                   # Data Transfer Objects (Validation)
+│   │   ├── entity/                # Database Models (User, Task, Payout)
+│   │   ├── exception/             # Global Exception Handling
+│   │   ├── repository/            # Spring Data JPA Interfaces
+│   │   ├── security/              # JWT Filters & Stateless Auth
+│   │   └── service/               # Core Business Logic
+│   └── src/main/resources/        # env-driven application.properties
+│
+├── frontend/                      # React + Vite Application
+│   ├── public/                    # Static Assets
+│   ├── src/
+│   │   ├── assets/                # Images & Global CSS
+│   │   ├── components/            # Reusable UI Components
+│   │   ├── context/               # React Auth Context (JWT State)
+│   │   ├── pages/                 # Dashboard, Login, Signup Views
+│   │   ├── services/              # Axios API Clients
+│   │   └── App.jsx                # Main Router
+│   └── package.json               # Dependencies
+│
+└── setup_db.sql                   # Database initialization script
+```
+
+## 🔐 Security & Hardening
+
+GigLedger is built with strict financial and data privacy standards:
+
+1. **Stateless JWT Auth:** No session cookies. Every request is verified via a securely signed JSON Web Token.
+2. **Data Isolation:** Service-level ownership checks (`HTTP 403 Forbidden`) ensure a user can *never* query or mutate another worker's tasks.
+3. **Strict Validation:** Edge-case protection using DTO annotations (`@Positive`, `@NotBlank`) prevents corrupted or impossible data (e.g., negative payouts).
+4. **Environment Secrets:** Zero hardcoded credentials. Passwords and JWT signatures are injected via `.env` files.
+
+## 🚀 Future Roadmap
+
+- [ ] **Phase 2 — OCR Integration:** Automatically extract promised fares and distances from worker screenshots to eliminate manual typing.
+- [ ] **Phase 2 — Statistical Analysis:** Algorithmically flag sustained underpayment patterns.
+- [ ] **Phase 3 — Immutable Ledgers:** Generate tamper-evident PDF/hash exports for indisputable proof in disputes.
