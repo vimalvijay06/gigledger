@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ClipboardList, Plus } from 'lucide-react';
+import { ClipboardList, Plus, AlertTriangle } from 'lucide-react';
 import api from '../api/client';
 
 export default function LedgerPage() {
@@ -43,7 +43,7 @@ export default function LedgerPage() {
         <div>
           <h1 className="page-title" style={{ marginBottom: '0.25rem' }}>Task Ledger</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-            Your full history of deliveries and verified earnings
+            Your full history of deliveries, estimated fuel expenditures, and verified earnings
           </p>
         </div>
         <Link to="/capture" className="btn btn-primary btn--sm" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -71,6 +71,7 @@ export default function LedgerPage() {
               <tr>
                 <th>Date & Time</th>
                 <th>Distance</th>
+                <th>Fuel Cost</th>
                 <th>Promised (₹)</th>
                 <th>Actual (₹)</th>
                 <th>Difference</th>
@@ -82,6 +83,10 @@ export default function LedgerPage() {
               {tasks.map(task => {
                 const diff = task.payoutLogged ? Number(task.difference) : null;
                 const isUnderpaid = diff !== null && diff > 0;
+                
+                const hasFuelCost = task.estimatedFuelCost !== null && Number(task.estimatedFuelCost) >= 0;
+                const fuelWarningMsg = `Estimated fuel cost: ${fmt(task.estimatedFuelCost)} (based on today's petrol price of ${fmt(task.petrolPriceUsed)}/litre in this district). This is an average assumption, not an exact measurement.`;
+                const flagMsg = `This fare may barely cover fuel costs based on today's petrol price — this is an estimate, not an exact calculation.`;
 
                 return (
                   <tr key={task.id}>
@@ -90,6 +95,30 @@ export default function LedgerPage() {
                     </td>
                     <td>
                       {task.distanceKm ? `${task.distanceKm} km` : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                    </td>
+                    <td>
+                      {hasFuelCost ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title={fuelWarningMsg}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                            {fmt(task.estimatedFuelCost)}
+                          </span>
+                          {task.fuelCostFlagged && (
+                            <span 
+                              title={flagMsg}
+                              style={{ 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                color: 'var(--color-warning)', 
+                                cursor: 'help' 
+                              }}
+                            >
+                              <AlertTriangle size={14} />
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>No fuel cost</span>
+                      )}
                     </td>
                     <td>
                       <span className="amount amount-promised">{fmt(task.promisedAmount)}</span>

@@ -1,0 +1,24 @@
+# GigLedger OCR Microservice — Python Dependencies
+#
+# Install with:
+#   pip install -r requirements.txt
+#
+# NOTE: This file covers Python packages ONLY.
+#       Tesseract OCR is a SYSTEM BINARY — it must be installed separately:
+#
+#       Windows : https://github.com/UB-Mannheim/tesseract/wiki
+#       Linux   : sudo apt-get install tesseract-ocr
+#       macOS   : brew install tesseract
+#
+#       Installing pytesseract alone is NOT enough — it is just a Python
+#       wrapper that calls the tesseract binary. Without the binary you will
+#       get: "TesseractNotFound: tesseract is not installed or it's not in PATH"
+
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pytesseract==0.3.13
+Pillow==11.0.0
+opencv-python-headless==4.10.0.84
+numpy==2.1.3
+python-multipart==0.0.12
+pandas>=2.2.0

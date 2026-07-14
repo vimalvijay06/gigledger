@@ -2,7 +2,12 @@ import { NavLink } from 'react-router-dom';
 import { Home, ClipboardList, Camera, LineChart } from 'lucide-react';
 
 export default function BottomNav() {
-  const user = JSON.parse(localStorage.getItem('gl_user') || '{}');
+  let user = {};
+  try {
+    user = JSON.parse(localStorage.getItem('gl_user') || '{}');
+  } catch (e) {
+    console.error("Failed to parse user data from localStorage", e);
+  }
   const userInitials = user.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : 'U';

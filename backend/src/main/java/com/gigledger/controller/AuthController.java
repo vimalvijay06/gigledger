@@ -1,6 +1,7 @@
 package com.gigledger.controller;
 
 import com.gigledger.dto.AuthResponse;
+import com.gigledger.dto.GoogleLoginRequest;
 import com.gigledger.dto.LoginRequest;
 import com.gigledger.dto.SignupRequest;
 import com.gigledger.service.AuthService;
@@ -39,4 +40,11 @@ public class AuthController {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
+        AuthResponse response = authService.googleLogin(request);
+        return ResponseEntity.ok(response);
+    }
 }
+

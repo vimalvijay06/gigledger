@@ -1,11 +1,11 @@
 package com.gigledger.exception;
 
 import com.gigledger.dto.ErrorResponse;
+import com.gigledger.service.OcrService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
  * - ResponseStatusException         → uses embedded status (403, 404, 409 etc.)
  * - NoSuchElementException          → 404 (task/user not found)
  * - IllegalStateException           → 409 (e.g. payout already logged)
+ * - OcrService.OcrCallException     → 502 (Python OCR service unreachable)
  * - Exception (catch-all)           → 500 (message hidden, logged server-side)
  */
 @RestControllerAdvice
@@ -61,7 +62,7 @@ public class GlobalExceptionHandler {
 
         String message = ex.getBindingResult().getFieldErrors()
                 .stream()
-                .map(FieldError::getDefaultMessage)
+                .map(fieldError -> fieldError.getDefaultMessage())
                 .collect(Collectors.joining("; "));
 
         return build(HttpStatus.BAD_REQUEST, "Validation failed: " + message, request);
@@ -121,6 +122,22 @@ public class GlobalExceptionHandler {
             IllegalStateException ex,
             HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    // ─── 502 — OCR service unreachable ───────────────────────────────────────
+
+    /**
+     * OcrCallException is thrown by OcrService when the Python FastAPI service
+     * is down, returns an error status, or times out.
+     * We map it to 502 Bad Gateway (upstream service error) rather than 500,
+     * which makes it easy to distinguish in logs and monitoring.
+     */
+    @ExceptionHandler(OcrService.OcrCallException.class)
+    public ResponseEntity<ErrorResponse> handleOcrFailure(
+            OcrService.OcrCallException ex,
+            HttpServletRequest request) {
+        return build(HttpStatus.BAD_GATEWAY,
+                "OCR service unavailable: " + ex.getMessage(), request);
     }
 
     // ─── 500 — Catch-all ─────────────────────────────────────────────────────

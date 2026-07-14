@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ClipboardList, ArrowRight, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { ClipboardList, ArrowRight, ShieldCheck, AlertTriangle, Scale } from 'lucide-react';
 import api from '../api/client';
 
 export default function DashboardPage() {
@@ -9,9 +9,20 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [flags, setFlags] = useState([]);
+  const [pendingComplaints, setPendingComplaints] = useState([]);
+
   useEffect(() => {
-    api.get('/tasks')
-      .then(res => setTasks(res.data))
+    Promise.all([
+      api.get('/tasks'),
+      api.get('/analytics/flags'),
+      api.get('/complaints')
+    ])
+      .then(([tasksRes, flagsRes, complaintsRes]) => {
+        setTasks(tasksRes.data);
+        setFlags(flagsRes.data);
+        setPendingComplaints(complaintsRes.data);
+      })
       .catch(() => setError('Failed to load dashboard metrics.'))
       .finally(() => setLoading(false));
   }, []);
@@ -26,11 +37,15 @@ export default function DashboardPage() {
     .reduce((s, t) => s + Number(t.difference), 0);
   const pendingCount = tasks.filter(t => !t.payoutLogged).length;
 
-  // Fairness Score: percentage of logged payout amount that matched or exceeded promised amount
-  const paidOkTasks = loggedPayouts.filter(t => Number(t.difference) <= 0).length;
-  const fairnessScore = loggedPayouts.length > 0
-    ? Math.round((paidOkTasks / loggedPayouts.length) * 100)
-    : 100;
+  // Fairness Score calculated from systemic anomaly flags
+  const hasHighFlag = flags.some(f => f.severity === 'high');
+  const hasMediumFlag = flags.some(f => f.severity === 'medium');
+  const hasLowFlag = flags.some(f => f.severity === 'low');
+
+  let fairnessScore = 100;
+  if (hasHighFlag) fairnessScore = 30;
+  else if (hasMediumFlag) fairnessScore = 60;
+  else if (hasLowFlag) fairnessScore = 85;
 
   function fmt(n) {
     return '₹' + Number(n).toFixed(2);
@@ -55,6 +70,44 @@ export default function DashboardPage() {
       </div>
 
       {error && <div className="alert alert-error">⚠ {error}</div>}
+
+      {pendingComplaints.length > 0 && (
+        <div className="card" style={{ 
+          background: 'rgba(255, 176, 0, 0.08)', 
+          border: '1px solid rgba(255, 176, 0, 0.25)', 
+          borderRadius: 'var(--radius-lg)', 
+          padding: '1rem', 
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Scale size={24} style={{ color: 'var(--color-accent)', flexShrink: 0 }} />
+            <div>
+              <h4 style={{ color: 'var(--color-accent)', margin: 0, fontSize: '0.9rem', fontWeight: 700 }}>
+                Grievance Draft Ready
+              </h4>
+              <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0 0', fontSize: '0.8rem', lineHeight: 1.4 }}>
+                You have {pendingComplaints.length} pending legal complaint draft{pendingComplaints.length > 1 ? 's' : ''} ready for review.
+              </p>
+            </div>
+          </div>
+          <Link 
+            to="/complaints" 
+            className="btn btn-primary" 
+            style={{ 
+              padding: '6px 12px', 
+              fontSize: '0.8rem', 
+              textDecoration: 'none',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Review & Send
+          </Link>
+        </div>
+      )}
 
       {/* Fairness Gauge */}
       <div className="card" style={{ textAlign: 'center', marginBottom: '1.5rem', position: 'relative', overflow: 'hidden' }}>
@@ -95,14 +148,19 @@ export default function DashboardPage() {
         </div>
 
         <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', maxWidth: '300px', margin: '0 auto' }}>
-          {loggedPayouts.length === 0 
-            ? "Log payouts to verify if the platforms are paying you fully."
-            : fairnessScore === 100 
-            ? "Excellent! All verified payouts matched the promised amount."
-            : `Warning: ${100 - fairnessScore}% of your deliveries had shortfalls or unpaid adjustments.`
+          {loggedPayouts.length < 30
+            ? "Need at least 30 verified payouts to establish your statistical baseline."
+            : flags.length === 0
+            ? "Excellent! No sustained underpayment patterns detected in your logs."
+            : hasHighFlag
+            ? "Critical: Sustained underpayment patterns detected in your history!"
+            : hasMediumFlag
+            ? "Warning: Medium-severity systemic rate discrepancies flagged."
+            : "Caution: Minor rate deviations flagged in your payout logs."
           }
         </p>
       </div>
+
 
       {/* Primary Metrics Grid */}
       <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
@@ -119,6 +177,29 @@ export default function DashboardPage() {
           <div className="stat-value danger" style={{ fontSize: '1.25rem' }}>{fmt(totalUnderpaid)}</div>
         </div>
       </div>
+
+      {/* Anomaly Detection Alerts */}
+      {flags.length > 0 && (
+        <div className="alert alert-error" style={{
+          background: 'rgba(239, 68, 68, 0.08)',
+          border: '1px solid rgba(239, 68, 68, 0.25)',
+          color: 'var(--color-danger)',
+          justifyContent: 'space-between',
+          marginBottom: '1.5rem'
+        }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AlertTriangle size={18} />
+            Systemic underpayment detected! {flags.length} weekly pattern alert{flags.length > 1 ? 's' : ''} active.
+          </span>
+          <Link to="/analytics" className="btn btn-primary btn--sm" style={{
+            background: 'var(--color-danger)',
+            boxShadow: 'none',
+            color: '#ffffff'
+          }}>
+            View Details
+          </Link>
+        </div>
+      )}
 
       {/* Action Prompt */}
       {pendingCount > 0 && (
@@ -142,6 +223,7 @@ export default function DashboardPage() {
           </Link>
         </div>
       )}
+
 
       {/* Recent Activity Section */}
       <div className="card">

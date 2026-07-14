@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 
@@ -43,6 +43,41 @@ export default function LoginPage() {
       setLoading(false);
     }
   }
+
+  async function handleGoogleLoginSuccess(response) {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/google', { idToken: response.credential });
+      const { token, name: userName, email: userEmail } = res.data;
+      localStorage.setItem('gl_token', token);
+      localStorage.setItem('gl_user', JSON.stringify({ name: userName, email: userEmail }));
+      navigate('/');
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data || 'Google authentication failed.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    /* global google */
+    if (typeof google !== 'undefined') {
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+      if (!clientId) {
+        console.warn('VITE_GOOGLE_CLIENT_ID environment variable is not defined.');
+      }
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: handleGoogleLoginSuccess
+      });
+      google.accounts.id.renderButton(
+        document.getElementById('google-signin-btn'),
+        { theme: 'outline', size: 'large', width: '100%', text: 'continue_with' }
+      );
+    }
+  }, [tab]);
 
   return (
     <div className="login-screen-bg">
@@ -172,6 +207,8 @@ export default function LoginPage() {
 
           <div className="divider">or</div>
 
+          <div id="google-signin-btn" className="google-btn-container"></div>
+
           <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>
             {tab === 'login' ? "Don't have an account? " : 'Already have an account? '}
             <button
@@ -200,3 +237,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

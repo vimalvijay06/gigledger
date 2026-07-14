@@ -81,6 +81,28 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!--
+          WebFlux — adds WebClient for non-blocking HTTP calls to the Python OCR service.
+          We chose WebClient over the older RestTemplate because:
+            1. RestTemplate is in maintenance mode as of Spring 5 (not recommended for new code)
+            2. WebClient works naturally in both reactive and traditional (MVC) stacks
+            3. It supports multipart/form-data upload out of the box (needed to forward images)
+          NOTE: Adding webflux does NOT switch the whole app to reactive — Spring MVC still handles
+          all incoming requests. WebClient is just the HTTP client we use for outgoing calls.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+
+        <!-- OpenPDF (tamper-proof PDF report generation) -->
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>1.3.30</version>
+        </dependency>
+
+
         <!-- Tests -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
