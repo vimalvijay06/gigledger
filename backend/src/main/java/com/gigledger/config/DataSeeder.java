@@ -55,35 +55,28 @@ public class DataSeeder implements CommandLineRunner {
                     .legalBasisNote("IT Rules 2021 Rule 3(2) grievance officer requirement")
                     .build();
 
-            PlatformGrievanceContact blinkit = PlatformGrievanceContact.builder()
-                    .platformName("Blinkit")
-                    .grievanceEmail("contact pending verification")
-                    .verified(false)
-                    .contactNotes("Awaiting verification of official grievance email channel.")
+            PlatformGrievanceContact zepto = PlatformGrievanceContact.builder()
+                    .platformName("Zepto")
+                    .grievanceEmail("legal@zeptonow.com")
+                    .verified(true)
+                    .contactNotes("Legal compliance and grievance contact.")
                     .build();
 
             PlatformGrievanceContact uber = PlatformGrievanceContact.builder()
                     .platformName("Uber")
-                    .grievanceEmail("contact pending verification")
-                    .verified(false)
-                    .contactNotes("Awaiting verification of official grievance email channel.")
+                    .grievanceEmail("grievance-officer-india@uber.com")
+                    .verified(true)
+                    .contactNotes("Verified India grievance officer.")
                     .build();
 
             PlatformGrievanceContact ola = PlatformGrievanceContact.builder()
                     .platformName("Ola")
-                    .grievanceEmail("contact pending verification")
-                    .verified(false)
-                    .contactNotes("Awaiting verification of official grievance email channel.")
+                    .grievanceEmail("grievance.officer@olacabs.com")
+                    .verified(true)
+                    .contactNotes("Verified India grievance officer.")
                     .build();
 
-            PlatformGrievanceContact rapido = PlatformGrievanceContact.builder()
-                    .platformName("Rapido")
-                    .grievanceEmail("contact pending verification")
-                    .verified(false)
-                    .contactNotes("Awaiting verification of official grievance email channel.")
-                    .build();
-
-            contactRepository.saveAll(List.of(swiggy, zomato, blinkit, uber, ola, rapido));
+            contactRepository.saveAll(List.of(swiggy, zomato, zepto, uber, ola));
             log.info("Seeded 6 platform contacts successfully.");
         } else {
             log.info("PlatformGrievanceContact table already has data, skipping seed.");

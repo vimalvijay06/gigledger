@@ -29,13 +29,7 @@ export default function LedgerPage() {
     });
   }
 
-  if (loading) {
-    return (
-      <div className="page page--wide" style={{ display: 'flex', justifyContent: 'center', paddingTop: '4rem' }}>
-        <span className="spinner" style={{ width: 36, height: 36, borderWidth: 3 }} />
-      </div>
-    );
-  }
+  // Removed full-screen loading block to prevent transition flash
 
   return (
     <div className="page page--wide animate-in">

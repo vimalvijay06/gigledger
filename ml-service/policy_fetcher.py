@@ -54,7 +54,7 @@ def fetch_news_api(api_key):
     seen_urls = set()
     
     for category_hint, query in query_sets.items():
-        url = f"https://newsapi.org/v2/everything?q={urllib.parse.quote(query)}&sortBy=publishedAt&pageSize=10&apiKey={api_key}"
+        url = f"https://newsapi.org/v2/everything?q={urllib.parse.quote(query)}&language=en&sortBy=publishedAt&pageSize=10&apiKey={api_key}"
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         try:
             with urllib.request.urlopen(req, timeout=10) as response:

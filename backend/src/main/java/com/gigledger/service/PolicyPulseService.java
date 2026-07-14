@@ -121,6 +121,10 @@ public class PolicyPulseService {
                 }
 
                 String summary = (sumRes != null) ? sumRes.summary() : "No summary available";
+                if (sumRes != null && (!sumRes.relevant() || "NOT_RELEVANT".equals(summary))) {
+                    isNoise = true;
+                    log.info("Article '{}' marked as NOISE due to summarizer NOT_RELEVANT flag.", art.title());
+                }
 
                 // Parse ISO published timestamp
                 LocalDateTime pubDate = LocalDateTime.now();

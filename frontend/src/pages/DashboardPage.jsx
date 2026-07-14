@@ -51,13 +51,7 @@ export default function DashboardPage() {
     return '₹' + Number(n).toFixed(2);
   }
 
-  if (loading) {
-    return (
-      <div className="page" style={{ display: 'flex', justifyContent: 'center', paddingTop: '4rem' }}>
-        <span className="spinner" style={{ width: 36, height: 36, borderWidth: 3 }} />
-      </div>
-    );
-  }
+  // Removed full-screen loading block to prevent transition flash
 
   return (
     <div className="page animate-in">

@@ -8,6 +8,7 @@ export default function PolicyPulsePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [refreshing, setRefreshing] = useState(false);
   
   // Audio state
   const [playingId, setPlayingId] = useState(null);
@@ -62,6 +63,20 @@ export default function PolicyPulsePage() {
       ]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    setError('');
+    try {
+      await api.post('/policy/ingest');
+      await fetchFeed();
+    } catch (err) {
+      console.error(err);
+      setError('Failed to trigger live refresh.');
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -140,10 +155,32 @@ export default function PolicyPulsePage() {
           <p className="page-subtitle">Multilingual Policy & Welfare Aggregator</p>
         </div>
         
-        {/* Language Selector Dropdown */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--color-surface)', padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-          <Globe size={16} style={{ color: 'var(--color-accent)' }} />
-          <select 
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Live Refresh Button */}
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing || loading}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              color: 'var(--text-primary)',
+              padding: '6px 12px',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.875rem',
+              cursor: (refreshing || loading) ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              opacity: (refreshing || loading) ? 0.6 : 1
+            }}
+          >
+            <Loader2 size={16} className={refreshing ? 'spin' : ''} style={{ color: 'var(--color-accent)' }} />
+            <span style={{ fontWeight: 600 }}>Live Refresh</span>
+          </button>
+
+          {/* Language Selector Dropdown */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--color-surface)', padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+            <Globe size={16} style={{ color: 'var(--color-accent)' }} />
+            <select 
             value={lang} 
             onChange={(e) => {
               if (audioRef.current) {
@@ -158,6 +195,7 @@ export default function PolicyPulsePage() {
             <option value="ta" style={{ background: 'var(--color-surface)' }}>தமிழ் (Tamil)</option>
             <option value="hi" style={{ background: 'var(--color-surface)' }}>हिन्दी (Hindi)</option>
           </select>
+          </div>
         </div>
       </div>
 
@@ -166,24 +204,6 @@ export default function PolicyPulsePage() {
           {error}
         </div>
       )}
-
-      {/* Developer Tier Indexing Delay Warning Note */}
-      <div style={{
-        padding: '0.75rem 1rem',
-        background: 'rgba(249, 115, 22, 0.05)',
-        border: '1px solid rgba(249, 115, 22, 0.2)',
-        borderRadius: 'var(--radius-md)',
-        color: 'var(--color-accent)',
-        fontSize: '0.82rem',
-        lineHeight: '1.4',
-        marginBottom: '1.25rem',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px'
-      }}>
-        <span style={{ fontSize: '1.1rem' }}>⚠️</span>
-        <span>Feeds are cached and updated periodically. Note: NewsAPI free tier features a 24-hour article indexing delay.</span>
-      </div>
 
       {/* Category Filter Chips */}
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
